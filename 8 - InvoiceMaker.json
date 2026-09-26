@@ -1,0 +1,266 @@
+{
+  "name": "PMO - 8 - InvoiceMaker",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 1
+            }
+          ]
+        }
+      },
+      "id": "n1-schedule",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        60,
+        260
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "airtableOAuth2Api",
+        "operation": "search",
+        "base": {
+          "__rl": true,
+          "value": "apprrjGRN0luEjFHu",
+          "mode": "list",
+          "cachedResultName": "GMAR PROJECT - ERP AI",
+          "cachedResultUrl": "https://airtable.com/apprrjGRN0luEjFHu"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblNvEee5BcQzCLjt",
+          "mode": "list",
+          "cachedResultName": "Invoices",
+          "cachedResultUrl": "https://airtable.com/apprrjGRN0luEjFHu/tblNvEee5BcQzCLjt"
+        },
+        "filterByFormula": "{Status} = 'Ready'",
+        "returnAll": false,
+        "limit": 1,
+        "options": {}
+      },
+      "id": "n2-search",
+      "name": "Search records",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.2,
+      "position": [
+        300,
+        260
+      ],
+      "credentials": {
+        "airtableOAuth2Api": {
+          "id": "REPLACE_WITH_YOUR_AIRTABLE_CREDENTIAL",
+          "name": "Airtable PAT"
+        }
+      },
+      "alwaysOutputData": true,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "html": "<!DOCTYPE html><html dir=\"rtl\" lang=\"he\"><head><meta charset=\"UTF-8\"><style>body{font-family:Arial,sans-serif;padding:32px;color:#222}h1{color:#1a4d8f}table{width:100%;border-collapse:collapse;margin-top:16px}td,th{border:1px solid #ccc;padding:8px;text-align:right}.total{font-weight:bold;font-size:1.2em}</style></head><body><h1>חשבונית מס - איי.איי אלקטרוניקה</h1><p>עוסק מורשה: 515-678-923 | רחוב הברזל 30, תל אביב</p><table><tr><th>מספר חשבונית</th><td>{{ $json.fields.InvoiceNumber }}</td></tr><tr><th>לקוח</th><td>{{ $json.fields.CustomerId }}</td></tr><tr><th>סכום נטו</th><td>₪{{ $json.fields.Amount }}</td></tr><tr><th>מעא״מ</th><td>₪{{ $json.fields.VatAmount }}</td></tr><tr class=\"total\"><th>סה\"כ לתשלום</th><td>₪{{ $json.fields.Total }}</td></tr></table><p style=\"margin-top:24px;font-size:0.9em;color:#666\">מסמך זה הופק אוטומטית על ידי מערכת ה-ERP של AI Electronics.</p></body></html>",
+        "options": {}
+      },
+      "id": "n3-html",
+      "name": "HTML",
+      "type": "n8n-nodes-base.html",
+      "typeVersion": 1.2,
+      "position": [
+        540,
+        260
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "toText",
+        "sourceProperty": "html",
+        "options": {
+          "fileName": "={{ 'invoice-' + $('Search records').item.json.fields.InvoiceNumber + '.html' }}",
+          "mimeType": "text/html"
+        }
+      },
+      "id": "n4-convert",
+      "name": "Convert to File",
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1.1,
+      "position": [
+        780,
+        260
+      ]
+    },
+    {
+      "parameters": {
+        "name": "={{ 'invoice-' + $('Search records').item.json.fields.InvoiceNumber + '.html' }}",
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "root"
+        },
+        "options": {}
+      },
+      "id": "n5-drive",
+      "name": "Upload file",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        1020,
+        260
+      ],
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "REPLACE_WITH_YOUR_GOOGLE_DRIVE_CREDENTIAL",
+          "name": "Drive OAuth"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "authentication": "airtableOAuth2Api",
+        "operation": "update",
+        "base": {
+          "__rl": true,
+          "value": "apprrjGRN0luEjFHu",
+          "mode": "list",
+          "cachedResultName": "GMAR PROJECT - ERP AI",
+          "cachedResultUrl": "https://airtable.com/apprrjGRN0luEjFHu"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblNvEee5BcQzCLjt",
+          "mode": "list",
+          "cachedResultName": "Invoices",
+          "cachedResultUrl": "https://airtable.com/apprrjGRN0luEjFHu/tblNvEee5BcQzCLjt"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "id": "={{ $('Search records').item.json.id }}",
+            "PdfUrl": "={{ $json.webViewLink }}",
+            "Status": "Issued"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "n6-update",
+      "name": "Update record",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.2,
+      "position": [
+        1260,
+        260
+      ],
+      "credentials": {
+        "airtableOAuth2Api": {
+          "id": "REPLACE_WITH_YOUR_AIRTABLE_CREDENTIAL",
+          "name": "Airtable PAT"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "content": "### PMO-8 · InvoiceMaker\nכל דקה: מוצא חשבונית Status=Ready, בונה HTML (צומת HTML ייעודי), מעלה ל-Drive, שומר קישור ומסמן Issued.",
+        "height": 140,
+        "width": 460,
+        "color": 3
+      },
+      "id": "n7-note",
+      "name": "n7-note",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        60,
+        420
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Search records",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search records": {
+      "main": [
+        [
+          {
+            "node": "HTML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTML": {
+      "main": [
+        [
+          {
+            "node": "Convert to File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convert to File": {
+      "main": [
+        [
+          {
+            "node": "Upload file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload file": {
+      "main": [
+        [
+          {
+            "node": "Update record",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "00000000-0000-0000-0000-000000000000",
+  "meta": {
+    "templateCredsSetupCompleted": false,
+    "instanceId": "custom-erp-ai-project"
+  },
+  "nodeGroups": [],
+  "id": "wf8InvoiceMakerERP",
+  "tags": []
+}

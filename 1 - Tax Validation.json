@@ -1,0 +1,360 @@
+{
+  "name": "PMO - 1 - Tax Validation",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "base": {
+          "__rl": true,
+          "value": "apprrjGRN0luEjFHu",
+          "mode": "list",
+          "cachedResultName": "GMAR PROJECT - ERP AI",
+          "cachedResultUrl": "https://airtable.com/apprrjGRN0luEjFHu"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblNvEee5BcQzCLjt",
+          "mode": "list",
+          "cachedResultName": "Invoices",
+          "cachedResultUrl": "https://airtable.com/apprrjGRN0luEjFHu/tblNvEee5BcQzCLjt"
+        },
+        "triggerField": "Created",
+        "additionalFields": {}
+      },
+      "id": "n1-trigger",
+      "name": "Airtable Trigger",
+      "type": "n8n-nodes-base.airtableTrigger",
+      "typeVersion": 1,
+      "position": [
+        60,
+        280
+      ],
+      "credentials": {
+        "airtableOAuth2Api": {
+          "id": "REPLACE_WITH_YOUR_AIRTABLE_CREDENTIAL",
+          "name": "Airtable PAT"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "c1",
+              "leftValue": "={{ $json.fields.Amount }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            },
+            {
+              "id": "c2",
+              "leftValue": "={{ $json.fields.CustomerId }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "n2-if",
+      "name": "If",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        300,
+        280
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "airtableOAuth2Api",
+        "operation": "search",
+        "base": {
+          "__rl": true,
+          "value": "apprrjGRN0luEjFHu",
+          "mode": "list",
+          "cachedResultName": "GMAR PROJECT - ERP AI",
+          "cachedResultUrl": "https://airtable.com/apprrjGRN0luEjFHu"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblNvEee5BcQzCLjt",
+          "mode": "list",
+          "cachedResultName": "Invoices",
+          "cachedResultUrl": "https://airtable.com/apprrjGRN0luEjFHu/tblNvEee5BcQzCLjt"
+        },
+        "returnAll": false,
+        "limit": 1,
+        "options": {},
+        "sort": {
+          "property": [
+            {
+              "field": "InvoiceNumber",
+              "direction": "desc"
+            }
+          ]
+        }
+      },
+      "id": "n3-search",
+      "name": "Search records",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.2,
+      "position": [
+        540,
+        180
+      ],
+      "credentials": {
+        "airtableOAuth2Api": {
+          "id": "REPLACE_WITH_YOUR_AIRTABLE_CREDENTIAL",
+          "name": "Airtable PAT"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a0",
+              "name": "rate",
+              "type": "string",
+              "value": "={{ new Date($('Airtable Trigger').item.json.fields.Created) >= new Date('2025-01-01') ? 0.18 : 0.17 }}"
+            },
+            {
+              "id": "a1",
+              "name": "VatAmount",
+              "type": "string",
+              "value": "={{ Math.round($('Airtable Trigger').item.json.fields.Amount * $json.rate * 100) / 100 }}"
+            },
+            {
+              "id": "a2",
+              "name": "Total",
+              "type": "string",
+              "value": "={{ $('Airtable Trigger').item.json.fields.Amount + Number($json.VatAmount) }}"
+            },
+            {
+              "id": "a3",
+              "name": "InvoiceNumber",
+              "type": "string",
+              "value": "={{ 'INV-' + ((parseInt((($json.fields || {}).InvoiceNumber || 'INV-0000').split('-')[1]) || 0) + 1).toString().padStart(4, '0') }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "n4-edit",
+      "name": "Edit Fields",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        780,
+        180
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "airtableOAuth2Api",
+        "operation": "update",
+        "base": {
+          "__rl": true,
+          "value": "apprrjGRN0luEjFHu",
+          "mode": "list",
+          "cachedResultName": "GMAR PROJECT - ERP AI",
+          "cachedResultUrl": "https://airtable.com/apprrjGRN0luEjFHu"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblNvEee5BcQzCLjt",
+          "mode": "list",
+          "cachedResultName": "Invoices",
+          "cachedResultUrl": "https://airtable.com/apprrjGRN0luEjFHu/tblNvEee5BcQzCLjt"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "id": "={{ $('Airtable Trigger').item.json.id }}",
+            "Status": "Invalid"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "n5-update-invalid",
+      "name": "Update record",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.2,
+      "position": [
+        540,
+        400
+      ],
+      "credentials": {
+        "airtableOAuth2Api": {
+          "id": "REPLACE_WITH_YOUR_AIRTABLE_CREDENTIAL",
+          "name": "Airtable PAT"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "authentication": "airtableOAuth2Api",
+        "operation": "update",
+        "base": {
+          "__rl": true,
+          "value": "apprrjGRN0luEjFHu",
+          "mode": "list",
+          "cachedResultName": "GMAR PROJECT - ERP AI",
+          "cachedResultUrl": "https://airtable.com/apprrjGRN0luEjFHu"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblNvEee5BcQzCLjt",
+          "mode": "list",
+          "cachedResultName": "Invoices",
+          "cachedResultUrl": "https://airtable.com/apprrjGRN0luEjFHu/tblNvEee5BcQzCLjt"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "id": "={{ $('Airtable Trigger').item.json.id }}",
+            "VatAmount": "={{ $('Edit Fields').item.json.VatAmount }}",
+            "Total": "={{ $('Edit Fields').item.json.Total }}",
+            "InvoiceNumber": "={{ $('Edit Fields').item.json.InvoiceNumber }}",
+            "Status": "Ready"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "n6-update-ready",
+      "name": "Update record1",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.2,
+      "position": [
+        1020,
+        180
+      ],
+      "credentials": {
+        "airtableOAuth2Api": {
+          "id": "REPLACE_WITH_YOUR_AIRTABLE_CREDENTIAL",
+          "name": "Airtable PAT"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "content": "### PMO-1 · אימות מסמכי מס → תור הפקה\nכשנוצרת חשבונית: בודק תקינות, מחשב מע\"מ (17%/18% לפי תאריך) וסה\"כ, נותן מספר עוקב INV-0001, ומסמן Ready. WF8 קולט משם. חשבונית פסולה → Invalid.",
+        "height": 160,
+        "width": 460,
+        "color": 3
+      },
+      "id": "n7-note",
+      "name": "n7-note",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        60,
+        460
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Airtable Trigger": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Search records",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Update record",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search records": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Update record1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "00000000-0000-0000-0000-000000000000",
+  "meta": {
+    "templateCredsSetupCompleted": false,
+    "instanceId": "custom-erp-ai-project"
+  },
+  "nodeGroups": [],
+  "id": "wf1TaxValidationERP",
+  "tags": []
+}
