@@ -160,7 +160,6 @@ flowchart RL
 
 <div align="right">
 
-### האפליקציה
 
 ![App](app-dashboard.png)
 
@@ -168,7 +167,6 @@ flowchart RL
 
 ![App](app-invoices.png)
 
-### הקנבסים ב-n8n
 
 ![WF](wf1-tax-validation-canvas.png)
 
